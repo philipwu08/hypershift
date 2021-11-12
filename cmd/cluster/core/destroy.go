@@ -32,6 +32,8 @@ type DestroyOptions struct {
 
 type AWSPlatformDestroyOptions struct {
 	AWSCredentialsFile string
+	AWSKey             string
+	AWSSecretKey       string
 	BaseDomain         string
 	PreserveIAM        bool
 	Region             string
@@ -60,22 +62,25 @@ func DestroyCluster(ctx context.Context, hostedCluster *hyperv1.HostedCluster, o
 	// If the hosted cluster exists, add a finalizer, delete it, and wait for
 	// the cluster to be cleaned up before destroying its infrastructure.
 	if hostedClusterExists {
-		controllerutil.AddFinalizer(hostedCluster, destroyFinalizer)
-		if err := c.Update(ctx, hostedCluster); err != nil {
-			if apierrors.IsNotFound(err) {
-				log.Info("Hosted cluster not found, skipping finalizer update", "namespace", o.Namespace, "name", o.Name)
+		if !controllerutil.ContainsFinalizer(hostedCluster, destroyFinalizer) && hostedCluster.DeletionTimestamp == nil {
+
+			controllerutil.AddFinalizer(hostedCluster, destroyFinalizer)
+			if err := c.Update(ctx, hostedCluster); err != nil {
+				if apierrors.IsNotFound(err) {
+					log.Info("Hosted cluster not found, skipping finalizer update", "namespace", o.Namespace, "name", o.Name)
+				} else {
+					return fmt.Errorf("failed to add finalizer to hosted cluster: %w", err)
+				}
 			} else {
-				return fmt.Errorf("failed to add finalizer to hosted cluster: %w", err)
+				log.Info("Updated finalizer for hosted cluster", "namespace", o.Namespace, "name", o.Name)
 			}
-		} else {
-			log.Info("Updated finalizer for hosted cluster", "namespace", o.Namespace, "name", o.Name)
-		}
-		log.Info("Deleting hosted cluster", "namespace", o.Namespace, "name", o.Name)
-		if err := c.Delete(ctx, hostedCluster); err != nil {
-			if apierrors.IsNotFound(err) {
-				log.Info("Hosted not found, skipping delete", "namespace", o.Namespace, "name", o.Name)
-			} else {
-				return fmt.Errorf("failed to delete hostedcluster: %w", err)
+			log.Info("Deleting hosted cluster", "namespace", o.Namespace, "name", o.Name)
+			if err := c.Delete(ctx, hostedCluster); err != nil {
+				if apierrors.IsNotFound(err) {
+					log.Info("Hosted not found, skipping delete", "namespace", o.Namespace, "name", o.Name)
+				} else {
+					return fmt.Errorf("failed to delete hostedcluster: %w", err)
+				}
 			}
 		}
 		// Wait for the hosted cluster to have only the CLI's finalizer remaining,

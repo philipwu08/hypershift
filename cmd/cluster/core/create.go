@@ -39,6 +39,7 @@ type CreateOptions struct {
 	NetworkType                      string
 	NodePoolReplicas                 int32
 	PullSecretFile                   string
+	PullSecret                       []byte
 	ReleaseImage                     string
 	Render                           bool
 	SSHKeyFile                       string
@@ -52,6 +53,8 @@ type NonePlatformCreateOptions struct {
 
 type AWSPlatformOptions struct {
 	AWSCredentialsFile string
+	AWSKey             string
+	AWSSecretKey       string
 	AdditionalTags     []string
 	BaseDomain         string
 	IAMJSON            string
@@ -88,10 +91,15 @@ func createCommonFixture(opts *CreateOptions) (*apifixtures.ExampleOptions, erro
 		annotations[hyperv1.ControlPlaneOperatorImageAnnotation] = opts.ControlPlaneOperatorImage
 	}
 
-	pullSecret, err := ioutil.ReadFile(opts.PullSecretFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read pull secret file: %w", err)
+	pullSecret := opts.PullSecret
+	var err error
+	if len(opts.PullSecret) == 0 {
+		pullSecret, err = ioutil.ReadFile(opts.PullSecretFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read pull secret file: %w", err)
+		}
 	}
+
 	var sshKey, sshPrivateKey []byte
 	if len(opts.SSHKeyFile) > 0 {
 		if opts.GenerateSSH {

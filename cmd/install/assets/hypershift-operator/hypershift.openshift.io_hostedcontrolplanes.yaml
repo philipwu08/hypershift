@@ -350,7 +350,7 @@ spec:
                       nodePoolManagementCreds:
                         description: NodePoolManagementCreds is a reference to a secret
                           containing cloud credentials with permissions matching the
-                          noe pool management policy. The secret should have exactly
+                          node pool management policy. The secret should have exactly
                           one key, `credentials`, whose value is an AWS credentials
                           file.
                         properties:
@@ -436,8 +436,6 @@ spec:
                           type: object
                         type: array
                     required:
-                    - kubeCloudControllerCreds
-                    - nodePoolManagementCreds
                     - region
                     type: object
                   type:

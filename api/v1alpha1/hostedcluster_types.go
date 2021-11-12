@@ -103,22 +103,22 @@ type HostedClusterSpec struct {
 	// whose value is the public part of an SSH key that can be used to access
 	// Nodes.
 	// +immutable
-	SSHKey corev1.LocalObjectReference `json:"sshKey"`
+	SSHKey corev1.LocalObjectReference `json:"sshKey,omitempty"`
 
 	// Networking contains network-specific settings for this cluster
 	// +immutable
-	Networking ClusterNetworking `json:"networking"`
+	Networking ClusterNetworking `json:"networking,omitempty"`
 
 	// Autoscaling for compute nodes only, does not cover control plane
 	// +optional
 	Autoscaling ClusterAutoscaling `json:"autoscaling,omitempty"`
 
 	// +immutable
-	Platform PlatformSpec `json:"platform"`
+	Platform PlatformSpec `json:"platform,omitempty"`
 
 	// InfraID is used to identify the cluster in cloud platforms
 	// +immutable
-	InfraID string `json:"infraID"`
+	InfraID string `json:"infraID,omitempty"`
 
 	// DNS configuration for the cluster
 	// +immutable
@@ -127,7 +127,7 @@ type HostedClusterSpec struct {
 	// Services defines metadata about how control plane services are published
 	// in the management cluster.
 	// TODO (alberto): include Ignition endpoint here.
-	Services []ServicePublishingStrategyMapping `json:"services"`
+	Services []ServicePublishingStrategyMapping `json:"services,omitempty"`
 
 	// ControllerAvailabilityPolicy specifies an availability policy to apply
 	// to critical control plane components.
@@ -207,7 +207,7 @@ var (
 	NodePort PublishingStrategyType = "NodePort"
 	// Route exposes services with a Route + ClusterIP kube service.
 	Route PublishingStrategyType = "Route"
-	// S3 exoses a service through an S3 bucket
+	// S3 exposes a service through an S3 bucket
 	S3 PublishingStrategyType = "S3"
 	// None disables exposing the service
 	None PublishingStrategyType = "None"
@@ -375,14 +375,14 @@ type AWSPlatformSpec struct {
 	// The secret should have exactly one key, `credentials`, whose value is
 	// an AWS credentials file.
 	// +immutable
-	KubeCloudControllerCreds corev1.LocalObjectReference `json:"kubeCloudControllerCreds"`
+	KubeCloudControllerCreds corev1.LocalObjectReference `json:"kubeCloudControllerCreds,omitempty"`
 
 	// NodePoolManagementCreds is a reference to a secret containing cloud
-	// credentials with permissions matching the noe pool management policy.
+	// credentials with permissions matching the node pool management policy.
 	// The secret should have exactly one key, `credentials`, whose value is
 	// an AWS credentials file.
 	// +immutable
-	NodePoolManagementCreds corev1.LocalObjectReference `json:"nodePoolManagementCreds"`
+	NodePoolManagementCreds corev1.LocalObjectReference `json:"nodePoolManagementCreds,omitempty"`
 
 	// resourceTags is a list of additional tags to apply to AWS resources created for the cluster.
 	// See https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html for information on tagging AWS resources.
@@ -750,6 +750,10 @@ const (
 	// is running on a management cluster outside AWS or is not configured with AWS
 	// credentials, the HostedCluster is not supported.
 	SupportedHostedCluster ConditionType = "SupportedHostedCluster"
+
+	// NodePoolInfrastructureConfigurationDeployed indicates (if status is true) that the
+	// Cloud provider configuration specified for the hostedCluster has been deployed
+	CloudProviderConfigured ConditionType = "CloudProviderConfigured"
 )
 
 const (
@@ -769,6 +773,9 @@ const (
 	UnmanagedEtcdAsExpected          = "UnmanagedEtcdAsExpected"
 
 	InsufficientClusterCapabilitiesReason = "InsufficientClusterCapabilities"
+
+	CloudProviderConfiguredAsExpected = "CloudProviderConfiguredAsExpected"
+	CloudProviderMisConfiguredReason  = "CloudProviderMisconfigured"
 )
 
 // HostedClusterStatus defines the observed state of HostedCluster

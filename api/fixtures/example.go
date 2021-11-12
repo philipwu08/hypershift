@@ -12,6 +12,10 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	destroyFinalizer = "openshift.io/destroy-cluster"
+)
+
 type ExampleResources struct {
 	Namespace    *corev1.Namespace
 	PullSecret   *corev1.Secret
@@ -277,6 +281,9 @@ web_identity_token_file = /var/run/secrets/openshift/serviceaccount/token
 			Namespace:   namespace.Name,
 			Name:        o.Name,
 			Annotations: o.Annotations,
+			Finalizers: []string{
+				destroyFinalizer,
+			},
 		},
 		Spec: hyperv1.HostedClusterSpec{
 			Release: hyperv1.Release{
@@ -372,6 +379,7 @@ web_identity_token_file = /var/run/secrets/openshift/serviceaccount/token
 		AWSResources: exampleAWSResources,
 		SSHKey:       sshKeySecret,
 		Cluster:      cluster,
-		NodePool:     nodePool,
+		//@todo comment this out to skip nodePool creation by the CLI/Controller
+		NodePool: nodePool,
 	}
 }

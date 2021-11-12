@@ -61,6 +61,8 @@ func destroyPlatformSpecifics(ctx context.Context, o *core.DestroyOptions) error
 		Region:             region,
 		InfraID:            infraID,
 		AWSCredentialsFile: o.AWSPlatform.AWSCredentialsFile,
+		AWSKey:             o.AWSPlatform.AWSKey,
+		AWSSecretKey:       o.AWSPlatform.AWSSecretKey,
 		Name:               o.Name,
 		BaseDomain:         baseDomain,
 	}

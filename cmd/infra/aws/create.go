@@ -19,6 +19,8 @@ type CreateInfraOptions struct {
 	Region             string
 	InfraID            string
 	AWSCredentialsFile string
+	AWSKey             string
+	AWSSecretKey       string
 	Name               string
 	BaseDomain         string
 	OutputFile         string
@@ -122,9 +124,11 @@ func (o *CreateInfraOptions) CreateInfra(ctx context.Context) (*CreateInfraOutpu
 	log.Info("Creating infrastructure", "id", o.InfraID)
 
 	awsSession := awsutil.NewSession("cli-create-infra")
-	awsConfig := awsutil.NewConfig(o.AWSCredentialsFile, o.Region)
-	ec2Client := ec2.New(awsSession, awsConfig)
-	route53Client := route53.New(awsSession, awsutil.NewRoute53Config(o.AWSCredentialsFile))
+
+	ec2Client := ec2.New(awsSession, awsutil.NewAWSConfig(o.AWSCredentialsFile, o.AWSKey, o.AWSSecretKey, o.Region))
+	//@ToDo The original defaults to us-east-1, not sure that is what we want here.
+	//route53Client := route53.New(awsSession, awsutil.NewRoute53Config(o.AWSCredentialsFile))
+	route53Client := route53.New(awsSession, awsutil.NewAWSConfig(o.AWSCredentialsFile, o.AWSKey, o.AWSSecretKey, o.Region))
 
 	var err error
 	if err = o.parseAdditionalTags(); err != nil {
@@ -137,10 +141,12 @@ func (o *CreateInfraOptions) CreateInfra(ctx context.Context) (*CreateInfraOutpu
 		Name:        o.Name,
 		BaseDomain:  o.BaseDomain,
 	}
+	//@Todo support multi-zone support
 	result.Zone, err = o.firstZone(ec2Client)
 	if err != nil {
 		return nil, err
 	}
+	//@Todo, re-use a VPC
 	result.VPCID, err = o.createVPC(ec2Client)
 	if err != nil {
 		return nil, err

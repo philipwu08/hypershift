@@ -100,6 +100,8 @@ func applyPlatformSpecificsValues(ctx context.Context, exampleOptions *apifixtur
 			Region:             opts.AWSPlatform.Region,
 			InfraID:            infraID,
 			AWSCredentialsFile: opts.AWSPlatform.AWSCredentialsFile,
+			AWSKey:             opts.AWSPlatform.AWSKey,
+			AWSSecretKey:       opts.AWSPlatform.AWSSecretKey,
 			Name:               opts.Name,
 			BaseDomain:         opts.AWSPlatform.BaseDomain,
 			AdditionalTags:     opts.AWSPlatform.AdditionalTags,
@@ -124,6 +126,8 @@ func applyPlatformSpecificsValues(ctx context.Context, exampleOptions *apifixtur
 		opt := awsinfra.CreateIAMOptions{
 			Region:             opts.AWSPlatform.Region,
 			AWSCredentialsFile: opts.AWSPlatform.AWSCredentialsFile,
+			AWSKey:             opts.AWSPlatform.AWSKey,
+			AWSSecretKey:       opts.AWSPlatform.AWSSecretKey,
 			InfraID:            infra.InfraID,
 			IssuerURL:          opts.AWSPlatform.IssuerURL,
 			AdditionalTags:     opts.AWSPlatform.AdditionalTags,

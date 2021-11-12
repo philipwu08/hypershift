@@ -1,0 +1,18 @@
+---
+apiVersion: hypershift.openshift.io/v1alpha1
+kind: HostedCluster
+metadata:
+  name: jnp-demo1
+  namespace: clusters
+spec:
+  platform:
+    aws:
+      region: us-east-1
+    type: AWS
+  dns:
+    baseDomain: dev06.red-chesterfield.com
+  pullSecret:
+    name: pull-secret
+  release:
+    image: quay.io/openshift-release-dev/ocp-release:4.9.5-x86_64
+

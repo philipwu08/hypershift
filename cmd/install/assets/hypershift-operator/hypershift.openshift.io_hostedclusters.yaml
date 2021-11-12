@@ -418,7 +418,7 @@ spec:
                       nodePoolManagementCreds:
                         description: NodePoolManagementCreds is a reference to a secret
                           containing cloud credentials with permissions matching the
-                          noe pool management policy. The secret should have exactly
+                          node pool management policy. The secret should have exactly
                           one key, `credentials`, whose value is an AWS credentials
                           file.
                         properties:
@@ -504,8 +504,6 @@ spec:
                           type: object
                         type: array
                     required:
-                    - kubeCloudControllerCreds
-                    - nodePoolManagementCreds
                     - region
                     type: object
                   type:
@@ -808,14 +806,9 @@ spec:
                     type: string
                 type: object
             required:
-            - infraID
             - issuerURL
-            - networking
-            - platform
             - pullSecret
             - release
-            - services
-            - sshKey
             type: object
           status:
             description: Status is the latest observed status of the HostedCluster.
