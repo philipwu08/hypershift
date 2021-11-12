@@ -2,7 +2,7 @@
 apiVersion: hypershift.openshift.io/v1alpha1
 kind: HostedCluster
 metadata:
-  name: jnp-demo1
+  name: demo1
   namespace: clusters
 spec:
   platform:
@@ -10,7 +10,7 @@ spec:
       region: us-east-1
     type: AWS
   dns:
-    baseDomain: dev06.red-chesterfield.com
+    baseDomain: MY_BASE_DOMAIN
   pullSecret:
     name: pull-secret
   release:
