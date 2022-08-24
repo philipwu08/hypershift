@@ -18,8 +18,12 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/hypershift/api/util/ipnet"
+	hy "github.com/openshift/hypershift/api/v1alpha1"
 	awsutil "github.com/openshift/hypershift/cmd/infra/aws/util"
 	"github.com/openshift/hypershift/cmd/log"
+	"github.com/openshift/hypershift/cmd/util"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 )
@@ -37,6 +41,7 @@ type CreateInfraOptions struct {
 	AdditionalTags     []string
 	EnableProxy        bool
 	SSHKeyFile         string
+	CreateResource     bool
 
 	additionalEC2Tags []*ec2.Tag
 }
@@ -92,6 +97,7 @@ func NewCreateCommand() *cobra.Command {
 	cmd.Flags().StringVar(&opts.BaseDomain, "base-domain", opts.BaseDomain, "The ingress base domain for the cluster")
 	cmd.Flags().StringSliceVar(&opts.Zones, "zones", opts.Zones, "The availablity zones in which NodePool can be created")
 	cmd.Flags().BoolVar(&opts.EnableProxy, "enable-proxy", opts.EnableProxy, "If a proxy should be set up, rather than allowing direct internet access from the nodes")
+	cmd.Flags().BoolVar(&opts.CreateResource, "create-resource", opts.CreateResource, "If a HostedClusterInfrastructure resource should be created (optional)")
 
 	cmd.MarkFlagRequired("infra-id")
 	cmd.MarkFlagRequired("aws-creds")
@@ -115,6 +121,20 @@ func (o *CreateInfraOptions) Run(ctx context.Context, l logr.Logger) error {
 	if err != nil {
 		return err
 	}
+
+	if o.CreateResource {
+		hci := renderHostedClusterInfrastructure(result)
+		client, err := util.GetClient()
+		if err != nil {
+			return err
+		}
+		err = client.Create(ctx, hci)
+		if err != nil {
+			return err
+		}
+		l.Info("Created HostedClusterInfrastructure resource", hci.Namespace, hci.Name)
+	}
+
 	out := os.Stdout
 	if len(o.OutputFile) > 0 {
 		var err error
@@ -133,6 +153,59 @@ func (o *CreateInfraOptions) Run(ctx context.Context, l logr.Logger) error {
 		return fmt.Errorf("failed to write result: %w", err)
 	}
 	return nil
+}
+
+func renderHostedClusterInfrastructure(infraOut *CreateInfraOutput) *hy.HostedClusterInfrastructure {
+
+	mCIDR, _ := ipnet.ParseCIDR(DefaultCIDRBlock)
+
+	hci := &hy.HostedClusterInfrastructure{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      infraOut.InfraID,
+			Namespace: "default",
+		},
+		Spec: hy.HostedClusterInfrastructureSpec{
+			AltInfraID: infraOut.InfraID,
+			DNS: hy.DNSSpec{
+				BaseDomain:    infraOut.BaseDomain,
+				PublicZoneID:  infraOut.PublicZoneID,
+				PrivateZoneID: infraOut.PrivateZoneID,
+			},
+			Platform: hy.PlatformInfraSpec{
+				Type: "AWS",
+				AWS: &hy.AWSPlatformInfraSpec{
+					Region: infraOut.Region,
+					VPC:    infraOut.VPCID,
+					SecurityGroups: []hy.AWSResourceReference{
+						hy.AWSResourceReference{
+							ID: aws.String(infraOut.SecurityGroupID),
+						},
+					},
+				},
+			},
+			Networking: hy.ClusterNetworking{
+				NetworkType: hy.OVNKubernetes,
+				MachineNetwork: []hy.MachineNetworkEntry{
+					hy.MachineNetworkEntry{
+						CIDR: *mCIDR,
+					},
+				},
+			},
+		},
+	}
+
+	// Process Zones
+	hci.Spec.Platform.AWS.Zones = []hy.AWSZoneAndSubnet{}
+	for _, zone := range infraOut.Zones {
+		newZone := &hy.AWSZoneAndSubnet{
+			Zone: zone.Name,
+			Subnet: &hy.AWSResourceReference{
+				ID: aws.String(zone.SubnetID),
+			},
+		}
+		hci.Spec.Platform.AWS.Zones = append(hci.Spec.Platform.AWS.Zones, *newZone)
+	}
+	return hci
 }
 
 func (o *CreateInfraOptions) CreateInfra(ctx context.Context, l logr.Logger) (*CreateInfraOutput, error) {

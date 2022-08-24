@@ -22,11 +22,15 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 
+	hy "github.com/openshift/hypershift/api/v1alpha1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	awsutil "github.com/openshift/hypershift/cmd/infra/aws/util"
 	"github.com/openshift/hypershift/cmd/log"
+	"github.com/openshift/hypershift/cmd/util"
 )
 
 type DestroyInfraOptions struct {
@@ -38,6 +42,7 @@ type DestroyInfraOptions struct {
 	Name               string
 	BaseDomain         string
 	Log                logr.Logger
+	DeleteResource     bool
 }
 
 func NewDestroyCommand() *cobra.Command {
@@ -58,6 +63,7 @@ func NewDestroyCommand() *cobra.Command {
 	cmd.Flags().StringVar(&opts.Region, "region", opts.Region, "Region where cluster infra should be created")
 	cmd.Flags().StringVar(&opts.Name, "name", opts.Name, "A name for the cluster")
 	cmd.Flags().StringVar(&opts.BaseDomain, "base-domain", opts.BaseDomain, "The ingress base domain for the cluster")
+	cmd.Flags().BoolVar(&opts.DeleteResource, "delete-resource", opts.DeleteResource, "Delete the HostedClusterInfrastructure resource (optional)")
 
 	cmd.MarkFlagRequired("infra-id")
 	cmd.MarkFlagRequired("aws-creds")
@@ -67,6 +73,24 @@ func NewDestroyCommand() *cobra.Command {
 		if err := opts.Run(cmd.Context()); err != nil {
 			opts.Log.Error(err, "Failed to destroy infrastructure")
 			return err
+		}
+		if opts.DeleteResource {
+			client, err := util.GetClient()
+			if err != nil {
+				return err
+			}
+			hci := &hy.HostedClusterInfrastructure{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      opts.InfraID,
+					Namespace: "default",
+				},
+			}
+			err = client.Delete(cmd.Context(), hci)
+			if err != nil {
+				opts.Log.Error(err, "Could not delete HostedClusterInfrastructure")
+			} else {
+				opts.Log.Info("Deleted HostedClusterInfrastructure resource", "Name", hci.Name)
+			}
 		}
 		opts.Log.Info("Successfully destroyed infrastructure")
 		return nil
@@ -85,7 +109,9 @@ func (o *DestroyInfraOptions) Run(ctx context.Context) error {
 			o.Log.Info("WARNING: error during destroy, will retry", "error", err.Error())
 			return false, nil
 		}
+
 		return true, nil
+
 	}, ctx.Done())
 }
 

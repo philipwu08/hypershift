@@ -515,6 +515,7 @@ type ClusterNetworking struct {
 	// APIServer contains advanced network settings for the API server that affect
 	// how the APIServer is exposed inside a cluster node.
 	//
+	// +optional
 	// +immutable
 	APIServer *APIServerNetworking `json:"apiServer,omitempty"`
 }
