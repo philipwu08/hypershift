@@ -6,13 +6,18 @@ import (
 )
 
 type CurrentPhase string
+type fieldStatus string
 
 const (
-	PhaseInit   CurrentPhase = "init"
-	PhaseInfra  CurrentPhase = "infrastructure"
-	PhaseIAM    CurrentPhase = "iam"
-	PhaseReady  CurrentPhase = "ready"
-	PhaseVerify CurrentPhase = "verifying" // or validating??
+	PhaseInit   CurrentPhase = "INIT"
+	PhaseInfra  CurrentPhase = "INFRA"
+	PhaseIAM    CurrentPhase = "IAM"
+	PhaseReady  CurrentPhase = "READY"
+	PhaseVerify CurrentPhase = "VERIFYING" // or validating??
+
+	fieldVerified      fieldStatus = "Verified"
+	fieldAsExpected    fieldStatus = "AsExpected"
+	fieldNotAsExpected fieldStatus = "NotAsExpected"
 )
 
 func init() {
@@ -46,13 +51,26 @@ type HostedClusterInfrastructureSpec struct {
 	//
 	// +optional
 	// +immutable
-	Networking ClusterNetworking `json:"networking,omitempty"`
+	Networking ClusterNetworkingInfraSpec `json:"networking,omitempty"`
 
 	// CloudProvider secret, contains the Cloud credenetial and Base Domain
 	// When not present, we expect all values to populated at create time
 	// This can be from the hypershift cli or via a kubectl create.
 	// +optional
 	CloudProvider corev1.LocalObjectReference `json:"cloudProvider,omitempty"`
+}
+
+// HostedClusterSpec is the desired behavior of a HostedCluster.
+type AWSHostedClusterInfrastructureStatus struct {
+}
+
+type ClusterNetworkingInfraSpec struct {
+	// MachineNetwork is the list of IP address pools for machines.
+	// TODO: make this required in the next version of the API
+	//
+	// +immutable
+	// +optional
+	MachineNetwork []MachineNetworkEntry `json:"machineNetwork,omitempty"`
 }
 
 // PlatformSpec specifies the underlying infrastructure provider for the cluster
@@ -104,18 +122,7 @@ type AWSPlatformInfraSpec struct {
 	//
 	// +optional
 	// +immutable
-	RolesRef AWSRolesRef `json:"rolesRef,omitempty"`
-
-	// ResourceTags is a list of additional tags to apply to AWS resources created
-	// for the cluster. See
-	// https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html for
-	// information on tagging AWS resources. AWS supports a maximum of 50 tags per
-	// resource. OpenShift reserves 25 tags for its use, leaving 25 tags available
-	// for the user.
-	//
-	// +kubebuilder:validation:MaxItems=25
-	// +optional
-	ResourceTags []AWSResourceTag `json:"resourceTags,omitempty"`
+	RolesRef *AWSRolesRef `json:"rolesRef,omitempty"`
 
 	// SecurityGroups is an optional set of security groups to associate with node
 	// instances. One of more of the security groups can be used with nodePool resources

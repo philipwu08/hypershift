@@ -1,0 +1,49 @@
+apiVersion: hypershift.openshift.io/v1alpha1
+kind: HostedClusterInfrastructure
+metadata:
+  name: jnp-test
+  namespace: default
+spec:
+  altinfraid: jnp-test
+  platform:
+    type: AWS
+    aws:
+      region: us-east-1
+      vpc: vpc-0497873ee3e80cb5c
+      rolesref:
+        ingressarn: ""
+        imageregistryarn: ""
+        storagearn: ""
+        networkarn: ""
+        kubecloudcontrollerarn: ""
+        nodepoolmanagementarn: ""
+        controlplaneoperatorarn: ""
+      resourcetags: []
+      securitygroups:
+      - id: sg-0b48bf514f523a013
+        arn: null
+        filters: []
+      zones:
+      - subnet:
+          id: subnet-0ec4a3c098ed7acaf
+          arn: null
+          filters: []
+        zone: us-east-1a
+    azure: null
+    powervs: null
+  dns:
+    basedomain: dev06.red-chesterfield.com
+    publiczoneid: Z2KFHRPLWG1H9H
+    privatezoneid: Z00631671EP6O54AISVLB
+  networking:
+    servicecidr: ""
+    podcidr: ""
+    machinecidr: ""
+    machinenetwork: []
+    clusternetwork: []
+    servicenetwork: []
+    networktype: ""
+    apiserver: null
+  cloudprovider:
+    name: ""
+

@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/openshift/hypershift/api/util/ipnet"
 	hy "github.com/openshift/hypershift/api/v1alpha1"
@@ -26,6 +27,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
+	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type CreateInfraOptions struct {
@@ -123,13 +125,29 @@ func (o *CreateInfraOptions) Run(ctx context.Context, l logr.Logger) error {
 	}
 
 	if o.CreateResource {
-		hci := renderHostedClusterInfrastructure(result)
+		hci := &hy.HostedClusterInfrastructure{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      result.InfraID,
+				Namespace: "clusters",
+			},
+		}
 		client, err := util.GetClient()
 		if err != nil {
 			return err
 		}
-		err = client.Create(ctx, hci)
-		if err != nil {
+		oHci := hci.DeepCopy()
+		if _, err := controllerutil.CreateOrPatch(ctx, client, hci,
+			func() error {
+				if hci.ObjectMeta.CreationTimestamp.IsZero() {
+					l.Info("Setting default HostedClusterInfrastructure Spec", hci.Namespace, hci.Name)
+					hci.Spec.AltInfraID = result.InfraID
+				}
+				renderHostedClusterInfrastructure(result, hci)
+				return nil
+			}); err != nil {
+			return err
+		}
+		if err := client.Status().Patch(ctx, hci, k8sClient.MergeFrom(oHci)); err != nil {
 			return err
 		}
 		l.Info("Created HostedClusterInfrastructure resource", hci.Namespace, hci.Name)
@@ -155,41 +173,32 @@ func (o *CreateInfraOptions) Run(ctx context.Context, l logr.Logger) error {
 	return nil
 }
 
-func renderHostedClusterInfrastructure(infraOut *CreateInfraOutput) *hy.HostedClusterInfrastructure {
+func renderHostedClusterInfrastructure(infraOut *CreateInfraOutput, hci *hy.HostedClusterInfrastructure) {
 
 	mCIDR, _ := ipnet.ParseCIDR(DefaultCIDRBlock)
 
-	hci := &hy.HostedClusterInfrastructure{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      infraOut.InfraID,
-			Namespace: "default",
+	hci.Spec.DNS = hy.DNSSpec{
+		BaseDomain:    infraOut.BaseDomain,
+		PublicZoneID:  infraOut.PublicZoneID,
+		PrivateZoneID: infraOut.PrivateZoneID,
+	}
+	hci.Spec.Platform = hy.PlatformInfraSpec{
+		Type: hy.AWSPlatform,
+		AWS: &hy.AWSPlatformInfraSpec{
+			Region: infraOut.Region,
+			VPC:    infraOut.VPCID,
+			SecurityGroups: []hy.AWSResourceReference{
+				hy.AWSResourceReference{
+					ID: aws.String(infraOut.SecurityGroupID),
+				},
+			},
 		},
-		Spec: hy.HostedClusterInfrastructureSpec{
-			AltInfraID: infraOut.InfraID,
-			DNS: hy.DNSSpec{
-				BaseDomain:    infraOut.BaseDomain,
-				PublicZoneID:  infraOut.PublicZoneID,
-				PrivateZoneID: infraOut.PrivateZoneID,
-			},
-			Platform: hy.PlatformInfraSpec{
-				Type: "AWS",
-				AWS: &hy.AWSPlatformInfraSpec{
-					Region: infraOut.Region,
-					VPC:    infraOut.VPCID,
-					SecurityGroups: []hy.AWSResourceReference{
-						hy.AWSResourceReference{
-							ID: aws.String(infraOut.SecurityGroupID),
-						},
-					},
-				},
-			},
-			Networking: hy.ClusterNetworking{
-				NetworkType: hy.OVNKubernetes,
-				MachineNetwork: []hy.MachineNetworkEntry{
-					hy.MachineNetworkEntry{
-						CIDR: *mCIDR,
-					},
-				},
+	}
+
+	hci.Spec.Networking = hy.ClusterNetworkingInfraSpec{
+		MachineNetwork: []hy.MachineNetworkEntry{
+			hy.MachineNetworkEntry{
+				CIDR: *mCIDR,
 			},
 		},
 	}
@@ -205,7 +214,7 @@ func renderHostedClusterInfrastructure(infraOut *CreateInfraOutput) *hy.HostedCl
 		}
 		hci.Spec.Platform.AWS.Zones = append(hci.Spec.Platform.AWS.Zones, *newZone)
 	}
-	return hci
+	hci.Status.Phase = hy.PhaseReady
 }
 
 func (o *CreateInfraOptions) CreateInfra(ctx context.Context, l logr.Logger) (*CreateInfraOutput, error) {

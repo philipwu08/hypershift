@@ -591,8 +591,8 @@ DNSSpec
 <td>
 <code>networking</code></br>
 <em>
-<a href="#hypershift.openshift.io/v1alpha1.ClusterNetworking">
-ClusterNetworking
+<a href="#hypershift.openshift.io/v1alpha1.ClusterNetworkingInfraSpec">
+ClusterNetworkingInfraSpec
 </a>
 </em>
 </td>
@@ -1035,6 +1035,10 @@ private node communication with the control plane.</p>
 </td>
 </tr></tbody>
 </table>
+###AWSHostedClusterInfrastructureStatus { #hypershift.openshift.io/v1alpha1.AWSHostedClusterInfrastructureStatus }
+<p>
+<p>HostedClusterSpec is the desired behavior of a HostedCluster.</p>
+</p>
 ###AWSKMSAuthSpec { #hypershift.openshift.io/v1alpha1.AWSKMSAuthSpec }
 <p>
 (<em>Appears on:</em>
@@ -1346,25 +1350,6 @@ HostedCluster.spec.platform.aws.rolesRef</p>
 </tr>
 <tr>
 <td>
-<code>resourceTags</code></br>
-<em>
-<a href="#hypershift.openshift.io/v1alpha1.AWSResourceTag">
-[]AWSResourceTag
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>ResourceTags is a list of additional tags to apply to AWS resources created
-for the cluster. See
-<a href="https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html">https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html</a> for
-information on tagging AWS resources. AWS supports a maximum of 50 tags per
-resource. OpenShift reserves 25 tags for its use, leaving 25 tags available
-for the user.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>securityGroups</code></br>
 <em>
 <a href="#hypershift.openshift.io/v1alpha1.AWSResourceReference">
@@ -1645,7 +1630,6 @@ They are applied according to the rules defined by the AWS API:
 <p>
 (<em>Appears on:</em>
 <a href="#hypershift.openshift.io/v1alpha1.AWSNodePoolPlatform">AWSNodePoolPlatform</a>, 
-<a href="#hypershift.openshift.io/v1alpha1.AWSPlatformInfraSpec">AWSPlatformInfraSpec</a>, 
 <a href="#hypershift.openshift.io/v1alpha1.AWSPlatformSpec">AWSPlatformSpec</a>)
 </p>
 <p>
@@ -2846,7 +2830,6 @@ field is not used by the plugin, it can be left unset.</p>
 ###ClusterNetworking { #hypershift.openshift.io/v1alpha1.ClusterNetworking }
 <p>
 (<em>Appears on:</em>
-<a href="#hypershift.openshift.io/v1alpha1.HostedClusterInfrastructureSpec">HostedClusterInfrastructureSpec</a>, 
 <a href="#hypershift.openshift.io/v1alpha1.HostedClusterSpec">HostedClusterSpec</a>, 
 <a href="#hypershift.openshift.io/v1alpha1.HostedControlPlaneSpec">HostedControlPlaneSpec</a>)
 </p>
@@ -2982,6 +2965,38 @@ APIServerNetworking
 <em>(Optional)</em>
 <p>APIServer contains advanced network settings for the API server that affect
 how the APIServer is exposed inside a cluster node.</p>
+</td>
+</tr>
+</tbody>
+</table>
+###ClusterNetworkingInfraSpec { #hypershift.openshift.io/v1alpha1.ClusterNetworkingInfraSpec }
+<p>
+(<em>Appears on:</em>
+<a href="#hypershift.openshift.io/v1alpha1.HostedClusterInfrastructureSpec">HostedClusterInfrastructureSpec</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>machineNetwork</code></br>
+<em>
+<a href="#hypershift.openshift.io/v1alpha1.MachineNetworkEntry">
+[]MachineNetworkEntry
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MachineNetwork is the list of IP address pools for machines.
+TODO: make this required in the next version of the API</p>
 </td>
 </tr>
 </tbody>
@@ -3172,15 +3187,15 @@ unsupported upgrade e.g y-stream upgrade before 4.11.</p>
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;iam&#34;</p></td>
+<tbody><tr><td><p>&#34;IAM&#34;</p></td>
 <td></td>
-</tr><tr><td><p>&#34;infrastructure&#34;</p></td>
+</tr><tr><td><p>&#34;INFRA&#34;</p></td>
 <td></td>
-</tr><tr><td><p>&#34;init&#34;</p></td>
+</tr><tr><td><p>&#34;INIT&#34;</p></td>
 <td></td>
-</tr><tr><td><p>&#34;ready&#34;</p></td>
+</tr><tr><td><p>&#34;READY&#34;</p></td>
 <td></td>
-</tr><tr><td><p>&#34;verifying&#34;</p></td>
+</tr><tr><td><p>&#34;VERIFYING&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
@@ -3470,8 +3485,8 @@ DNSSpec
 <td>
 <code>networking</code></br>
 <em>
-<a href="#hypershift.openshift.io/v1alpha1.ClusterNetworking">
-ClusterNetworking
+<a href="#hypershift.openshift.io/v1alpha1.ClusterNetworkingInfraSpec">
+ClusterNetworkingInfraSpec
 </a>
 </em>
 </td>
@@ -3541,11 +3556,11 @@ CurrentPhase
 <p>Show which phase of curation is currently being processed</p>
 <p>
 Value must be one of:
-&#34;iam&#34;, 
-&#34;infrastructure&#34;, 
-&#34;init&#34;, 
-&#34;ready&#34;, 
-&#34;verifying&#34;
+&#34;IAM&#34;, 
+&#34;INFRA&#34;, 
+&#34;INIT&#34;, 
+&#34;READY&#34;, 
+&#34;VERIFYING&#34;
 </p>
 </td>
 </tr>
@@ -5468,7 +5483,8 @@ string
 ###MachineNetworkEntry { #hypershift.openshift.io/v1alpha1.MachineNetworkEntry }
 <p>
 (<em>Appears on:</em>
-<a href="#hypershift.openshift.io/v1alpha1.ClusterNetworking">ClusterNetworking</a>)
+<a href="#hypershift.openshift.io/v1alpha1.ClusterNetworking">ClusterNetworking</a>, 
+<a href="#hypershift.openshift.io/v1alpha1.ClusterNetworkingInfraSpec">ClusterNetworkingInfraSpec</a>)
 </p>
 <p>
 <p>MachineNetworkEntry is a single IP address block for node IP blocks.</p>
